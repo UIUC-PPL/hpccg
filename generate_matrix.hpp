@@ -34,5 +34,7 @@
 #endif
 #include "HPC_Sparse_Matrix.hpp"
 
-void generate_matrix(int nx, int ny, int nz, HPC_Sparse_Matrix **A, double **x, double **b, double **xexact);
+void generate_matrix(int nx, int ny, int nz,
+                     HPC_Sparse_Matrix **A, double **x, double **b, double **xexact,
+                     int decompSize, int decompRank);
 #endif

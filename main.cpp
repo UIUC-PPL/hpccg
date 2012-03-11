@@ -137,10 +137,10 @@ int main(int argc, char *argv[])
     int nx = atoi(argv[1]);
     int ny = atoi(argv[2]);
     int nz = atoi(argv[3]);
-    generate_matrix(nx, ny, nz, &A, &x, &b, &xexact);
+    generate_matrix(nx, ny, nz, &A, &x, &b, &xexact, size, rank);
   }
   else
-    read_HPC_row(argv[1], &A, &x, &b, &xexact);
+    read_HPC_row(argv[1], &A, &x, &b, &xexact, size, rank);
 
 #ifdef USING_MPI
 

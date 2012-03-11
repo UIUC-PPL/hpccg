@@ -45,7 +45,8 @@ using std::endl;
 #include <cassert>
 #include "read_HPC_row.hpp"
 void read_HPC_row(char *data_file, HPC_Sparse_Matrix **A,
-		  double **x, double **b, double **xexact)
+		  double **x, double **b, double **xexact,
+                  int size, int rank)
 
 {
   FILE *in_file ;
@@ -74,14 +75,7 @@ void read_HPC_row(char *data_file, HPC_Sparse_Matrix **A,
 
   fscanf(in_file,"%d",&total_nrow);
   fscanf(in_file,"%d",&total_nnz);
-#ifdef USING_MPI
-  int size, rank; // Number of MPI processes, My process ID
-  MPI_Comm_size(MPI_COMM_WORLD, &size);
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-#else
-  int size = 1; // Serial case (not using MPI)
-  int rank = 0;
-#endif
+
   int n = total_nrow;
   int chunksize = n/size;
   int remainder = n%size;

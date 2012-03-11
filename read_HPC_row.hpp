@@ -35,5 +35,6 @@
 #include "HPC_Sparse_Matrix.hpp"
 
 void read_HPC_row(char *data_file, HPC_Sparse_Matrix **A,
-		  double **x, double **b, double **xexact);
+		  double **x, double **b, double **xexact,
+                  int decompSize, int decompRank);
 #endif

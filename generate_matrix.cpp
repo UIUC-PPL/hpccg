@@ -44,7 +44,9 @@ using std::endl;
 #include <cstdio>
 #include <cassert>
 #include "generate_matrix.hpp"
-void generate_matrix(int nx, int ny, int nz, HPC_Sparse_Matrix **A, double **x, double **b, double **xexact)
+void generate_matrix(int nx, int ny, int nz,
+                     HPC_Sparse_Matrix **A, double **x, double **b, double **xexact,
+                     int size, int rank)
 
 {
 #ifdef DEBUG
@@ -52,16 +54,6 @@ void generate_matrix(int nx, int ny, int nz, HPC_Sparse_Matrix **A, double **x, 
 #else
   int debug = 0;
 #endif
-
-#ifdef USING_MPI
-  int size, rank; // Number of MPI processes, My process ID
-  MPI_Comm_size(MPI_COMM_WORLD, &size);
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-#else
-  int size = 1; // Serial case (not using MPI)
-  int rank = 0;
-#endif
-
 
   int local_nrow = nx*ny*nz; // This is the size of our subblock
   assert(local_nrow>0); // Must have something to work with
