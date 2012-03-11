@@ -44,7 +44,7 @@ using std::endl;
 #include <cstdio>
 #include <cassert>
 #include "read_HPC_row.hpp"
-void read_HPC_row(char *data_file, HPC_Sparse_Matrix **A,
+void read_HPC_row(const char *data_file, HPC_Sparse_Matrix **A,
 		  double **x, double **b, double **xexact,
                   int size, int rank)
 
