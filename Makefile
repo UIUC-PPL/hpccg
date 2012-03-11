@@ -34,18 +34,9 @@
 #
 # 0) Specify compiler and linker:
 
-CXX=mpic++
 LINKER=mpic++
 
 CHARMC ?= charmc
-
-# 1) Build with MPI or not?
-#    If you want to run the program with MPI, make sure USE_MPI is set 
-#    to -DUSING_MPI
-
-USE_MPI =
-#USE_MPI = -DUSING_MPI
-
 
 # 2) MPI headers:  
 #    If you:
@@ -64,7 +55,7 @@ USE_MPI =
 #IA32 with GCC: 
 #CPP_OPT_FLAGS = -O3 -funroll-all-loops -malign-double
 
-CPP_OPT_FLAGS = -O3
+CPP_OPT_FLAGS = -g # -O3
 
 #
 # 4) MPI library:
@@ -88,7 +79,7 @@ TARGET = test_HPCCG
 
 ################### Derived Quantities (no modification required) ##############
 
-CXXFLAGS= $(CPP_OPT_FLAGS) $(USE_MPI) $(MPI_INC) 
+CXXFLAGS= $(CPP_OPT_FLAGS)
 
 LIB_PATHS= $(MPI_LIB) $(SYS_LIB)
 
@@ -98,22 +89,39 @@ TEST_CPP = generate_matrix.cpp read_HPC_row.cpp compute_residual.cpp mytimer.cpp
 
 TEST_CHARM_CPP = charmHpccg.cpp
 
-TEST_OBJ          = $(TEST_CPP:.cpp=.o)
+MPI_OBJ          = $(TEST_CPP:.cpp=-mpi.o) main-mpi.o
+CHARM_OBJ        = $(TEST_CPP:.cpp=-charm.o) charmHpccg.o
+SEQ_OBJ          = $(TEST_CPP:.cpp=-seq.o) main-seq.o
 
-default: $(TARGET) charmHpccg
+TARGETS = seq_HPCCG mpi_HPCCG charm_HPCCG
 
-charmHpccg.o: CXX=$(CHARMC)
+default: $(TARGETS)
+
+%-seq.cpp: %.cpp
+	ln -s $< $@
+%-mpi.cpp: %.cpp
+	ln -s $< $@
+%-charm.cpp: %.cpp
+	ln -s $< $@
+
+$(CHARM_OBJ): CXX=$(CHARMC)
+$(CHARM_OBJ): CXXFLAGS+=-DUSING_CHARM
 charmHpccg.o:  charmHpccg.decl.h
+
+$(MPI_OBJ): CXX=mpic++
+$(MPI_OBJ): CXXFLAGS+=-DUSING_MPI $(MPI_INC)
 
 charmHpccg.decl.h: hpccg.ci
 	$(CHARMC) $<
 
-charmHpccg: charmHpccg.o $(TEST_OBJ)
+charm_HPCCG: charmHpccg.o $(CHARM_OBJ)
 	$(CHARMC) -o $@ $^
 
-$(TARGET): $(TEST_OBJ) main.o
-	$(LINKER) $(CFLAGS) $^ $(LIB_PATHS) -o $(TARGET)
+mpi_HPCCG: $(MPI_OBJ) main-mpi.o
+	$(LINKER) $(CFLAGS) $^ $(LIB_PATHS) -o $@
 
+seq_HPCCG: $(SEQ_OBJ) main-seq.o
+	$(LINKER) $(CFLAGS) $^ $(LIB_PATHS) -o $@
 
 clean:
-	@rm -f *.o  *~ $(TARGET) $(TARGET).exe *.decl.h *.def.h
+	@rm -f *.o  *~ *-seq.cpp *-mpi.cpp *-charm.cpp $(TARGETS) $(TARGET:=.exe) *.decl.h *.def.h
