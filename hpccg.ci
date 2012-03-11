@@ -1,0 +1,17 @@
+mainmodule charmHpccg {
+  readonly int numChares;
+  readonly CProxy_charmMain mainProxy;
+
+  mainchare charmMain {
+    entry charmMain(CkArgMsg*);
+    entry [reductiontarget] void matrixReady();
+  };
+  
+  array [1D] charmHpccg {
+    entry charmHpccg();
+    entry void generateMatrix(int nx, int ny, int nz);
+    entry void readMatrix(std::string fileName);
+    entry void findExternals();
+    entry void needElement(CkArrayIndex1D idx, int row, int col);
+  };
+};

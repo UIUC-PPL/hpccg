@@ -37,6 +37,7 @@
 CXX=mpic++
 LINKER=mpic++
 
+CHARMC ?= charmc
 
 # 1) Build with MPI or not?
 #    If you want to run the program with MPI, make sure USE_MPI is set 
@@ -91,15 +92,28 @@ CXXFLAGS= $(CPP_OPT_FLAGS) $(USE_MPI) $(MPI_INC)
 
 LIB_PATHS= $(MPI_LIB) $(SYS_LIB)
 
-TEST_CPP = main.cpp generate_matrix.cpp read_HPC_row.cpp compute_residual.cpp mytimer.cpp \
+TEST_CPP = generate_matrix.cpp read_HPC_row.cpp compute_residual.cpp mytimer.cpp \
           HPC_sparsemv.cpp HPCCG.cpp waxpby.cpp ddot.cpp \
           make_local_matrix.cpp exchange_externals.cpp
 
+TEST_CHARM_CPP = charmHpccg.cpp
+
 TEST_OBJ          = $(TEST_CPP:.cpp=.o)
 
-$(TARGET): $(TEST_OBJ)
-	$(LINKER) $(CFLAGS) $(TEST_OBJ) $(LIB_PATHS) -o $(TARGET)
+default: $(TARGET) charmHpccg
+
+charmHpccg.o: CXX=$(CHARMC)
+charmHpccg.o:  charmHpccg.decl.h
+
+charmHpccg.decl.h: hpccg.ci
+	$(CHARMC) $<
+
+charmHpccg: charmHpccg.o $(TEST_OBJ)
+	$(CHARMC) -o $@ $^
+
+$(TARGET): $(TEST_OBJ) main.o
+	$(LINKER) $(CFLAGS) $^ $(LIB_PATHS) -o $(TARGET)
 
 
 clean:
-	@rm -f *.o  *~ $(TARGET) $(TARGET).exe
+	@rm -f *.o  *~ $(TARGET) $(TARGET).exe *.decl.h *.def.h
