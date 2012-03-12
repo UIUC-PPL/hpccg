@@ -20,7 +20,7 @@ mainmodule charmHpccg {
       }
 
       when foundExternals() atomic {
-        array.beginComputation(10, 1e-30);
+        array.beginComputation(150, 0);
       }
 
       when done() atomic {
@@ -110,8 +110,8 @@ mainmodule charmHpccg {
         }
         atomic {
           normr = sqrt(rtrans);
-          if (thisIndex == 0)
-            ckout << "Iteration = "<< iteration << "   Residual = "<< normr << endl;
+          if (thisIndex == 0 && iteration % 15 == 0)
+            CkPrintf("Iteration = %d,\tResidual = %g\n", iteration, normr);
           exchangeExternals();
         }
         when exchangeDone() atomic {
