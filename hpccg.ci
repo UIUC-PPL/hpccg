@@ -5,6 +5,7 @@ mainmodule charmHpccg {
   mainchare charmMain {
     entry charmMain(CkArgMsg*);
     entry [reductiontarget] void matrixReady();
+    entry [reductiontarget] void foundExternals();
   };
   
   array [1D] charmHpccg {

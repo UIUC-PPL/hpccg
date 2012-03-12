@@ -21,9 +21,13 @@ protected:
   double *x, *b, *xexact;
 };
 
-struct charmMain : public CBase_charmMain {
+class charmMain : public CBase_charmMain {
+public:
   charmMain(CkArgMsg* msg);
   void matrixReady();
+  void foundExternals();
+private:
+  CProxy_charmHpccg array;
 };
 
 #endif /*CHARM_HPCCG*/

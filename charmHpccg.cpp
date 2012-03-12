@@ -29,7 +29,7 @@ charmMain::charmMain(CkArgMsg* msg) {
   }
 
   numChares = atoi(argv[1]);
-  CProxy_charmHpccg array = CProxy_charmHpccg::ckNew(numChares);
+  array = CProxy_charmHpccg::ckNew(numChares);
 
   if (argc == 5) {
     int nx = atoi(argv[2]);
@@ -43,8 +43,13 @@ charmMain::charmMain(CkArgMsg* msg) {
   delete msg;
 }
 
-void charmMain::matrixReady() {
+void charmMain::foundExternals() {
+  CkPrintf("start findExternals()\n");
   CkExit();
+}
+
+void charmMain::matrixReady() {
+  array.findExternals();
 }
 
 void charmHpccg::generateMatrix(int nx, int ny, int nz) {
