@@ -158,9 +158,6 @@ void make_local_matrix(HPC_Sparse_Matrix * A)
   // Build list of global index offset
 
   int * global_index_offsets = new int[size];
-  for (i=0;i<size; i++) tmp_buffer[i] = 0;  // First zero out
-
-  tmp_buffer[rank] = start_row; // This is my start row
 
   // This call sends the start_row of each ith processor to the ith 
   // entry of global_index_offset on all processors.
@@ -169,8 +166,7 @@ void make_local_matrix(HPC_Sparse_Matrix * A)
   // Note:  There might be a better algorithm for doing this, but this
   //        will work...
 
-  MPI_Allreduce(tmp_buffer, global_index_offsets, size, MPI_INT,
-		MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allgather(&start_row, 1, MPI_INT, global_index_offsets, 1, MPI_INT, MPI_COMM_WORLD);
 
   // Go through list of externals and find the processor that owns each
   int * external_processor = new int[num_external];
