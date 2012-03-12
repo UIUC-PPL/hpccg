@@ -71,25 +71,44 @@ void charmHpccg::findExternals() {
     int cutoffRow = (chunksize + 1) * remainder;
 
     int chare;
-    int remoteRow;
+    int remoteOffset;
     if (row < cutoffRow) {
       chare     = row / (chunksize + 1);
-      remoteRow = row % (chunksize + 1);
+      remoteOffset = row % (chunksize + 1);
     } else {
       int rowsPastCutoff = row - cutoffRow;
       chare = remainder + rowsPastCutoff / chunksize;
-      remoteRow = rowsPastCutoff % chunksize;
+      remoteOffset = rowsPastCutoff % chunksize;
     }
 
-    xToReceive[chare].values.push_back(remoteRow);
+    xToReceive[chare].rows.push_back(row);
+    xToReceive[chare].values.push_back(remoteOffset);
   }
 
-  int offset = 0;
+  map<int, int> row_to_offset;
+
+  int offset = A->local_nrow;
   for(map<int, RemoteX>::iterator iter = xToReceive.begin();
       iter != xToReceive.end(); ++iter) {
     iter->second.offset = offset;
-    offset += iter->second.values.size();
     thisProxy[iter->first].needXElements(thisIndex, iter->second.values);
+
+    for (int i = 0; i < iter->second.values.size(); ++i) {
+      int row = iter->second.rows[i];
+      row_to_offset[row] = offset + i;
+    }
+
+    offset += iter->second.values.size();
+  }
+
+  for (int i = 0; i < A->local_nrow; i++) {
+    for (int j = 0; j < A->nnz_in_row[i]; j++) {
+      if (A->ptr_to_inds_in_row[i][j] < 0) { // Change index values of externals
+        int cur_ind = - A->ptr_to_inds_in_row[i][j] - 1;
+        CkAssert(row_to_offset.find(cur_ind) != row_to_offset.end());
+        A->ptr_to_inds_in_row[i][j] = row_to_offset[cur_ind];
+      }
+    }
   }
 
   detector.ckLocalBranch()->produce(xToReceive.size());

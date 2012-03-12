@@ -15,7 +15,7 @@
 /*readonly*/ extern CProxy_charmMain mainProxy;
 
 struct RemoteX {
-  std::vector<int> values;
+  std::vector<int> rows, values;
   int offset;
 
   RemoteX() : offset(-1) { }

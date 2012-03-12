@@ -54,8 +54,9 @@ mainmodule charmHpccg {
         when transferX(int src, int size, double elms[size]) atomic {
           CkAssert(xToReceive.find(src) != xToReceive.end());
           CkAssert(size == xToReceive[src].values.size());
-          double *x_external = p + A->local_nrow;
-          memcpy(x_external + xToReceive[src].offset, elms, size * sizeof(double));
+          CkAssert(size + xToReceive[src].offset <= A->local_ncol);
+
+          memcpy(p + xToReceive[src].offset, elms, size * sizeof(double));
         }
       }
       atomic {
