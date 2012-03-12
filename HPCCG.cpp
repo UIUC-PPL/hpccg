@@ -57,6 +57,27 @@ using std::endl;
 
 #define TICK()  t0 = mytimer() // Use TICK and TOCK to time a code section
 #define TOCK(t) t += mytimer() - t0
+
+void mpi_ddot(const int n, const double * const x, const double * const y,
+              double * const result, double & time_allreduce) {
+  ddot(n, x, y, result, time_allreduce);
+#ifdef USING_MPI
+  // Use MPI's reduce function to collect all partial sums
+  double t0 = mytimer();
+  double global_result = 0.0;
+  MPI_Allreduce(result, &global_result, 1, MPI_DOUBLE, MPI_SUM,
+                MPI_COMM_WORLD);
+  *result = global_result;
+  time_allreduce += mytimer() - t0;
+#endif
+}
+
+#if USING_MPI
+#define DDOT mpi_ddot
+#else
+#define DDOT ddot
+#endif
+
 int HPCCG(HPC_Sparse_Matrix * A,
 	  const double * const b, double * const x,
 	  const int max_iter, const double tolerance, int &niters, double & normr,
@@ -100,7 +121,7 @@ int HPCCG(HPC_Sparse_Matrix * A,
 #endif
   TICK(); HPC_sparsemv(A, p, Ap); TOCK(t3);
   TICK(); waxpby(nrow, 1.0, b, -1.0, Ap, r); TOCK(t2);
-  TICK(); ddot(nrow, r, r, &rtrans, t4); TOCK(t1);
+  TICK(); DDOT(nrow, r, r, &rtrans, t4); TOCK(t1);
   normr = sqrt(rtrans);
 
   if (rank==0) cout << "Initial Residual = "<< normr << endl;
@@ -114,7 +135,7 @@ int HPCCG(HPC_Sparse_Matrix * A,
       else
 	{
 	  oldrtrans = rtrans;
-	  TICK(); ddot (nrow, r, r, &rtrans, t4); TOCK(t1);// 2*nrow ops
+	  TICK(); DDOT (nrow, r, r, &rtrans, t4); TOCK(t1);// 2*nrow ops
 	  double beta = rtrans/oldrtrans;
 	  TICK(); waxpby (nrow, 1.0, r, beta, p, p);  TOCK(t2);// 2*nrow ops
 	}
@@ -128,7 +149,7 @@ int HPCCG(HPC_Sparse_Matrix * A,
 #endif
       TICK(); HPC_sparsemv(A, p, Ap); TOCK(t3); // 2*nnz ops
       double alpha = 0.0;
-      TICK(); ddot(nrow, p, Ap, &alpha, t4); TOCK(t1); // 2*nrow ops
+      TICK(); DDOT(nrow, p, Ap, &alpha, t4); TOCK(t1); // 2*nrow ops
       alpha = rtrans/alpha;
       TICK(); waxpby(nrow, 1.0, x, alpha, p, x);// 2*nrow ops
       waxpby(nrow, 1.0, r, -alpha, Ap, r);  TOCK(t2);// 2*nrow ops
