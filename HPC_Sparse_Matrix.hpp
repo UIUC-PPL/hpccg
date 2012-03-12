@@ -52,10 +52,13 @@ struct HPC_Sparse_Matrix_STRUCT {
   int ** ptr_to_inds_in_row;
   double ** ptr_to_diags;
 
-#ifdef USING_MPI
+#if USING_MPI || USING_CHARM
   int num_external;
-  int num_send_neighbors;
   int *external_index;
+#endif
+
+#if USING_MPI
+  int num_send_neighbors;
   int *external_local_index;
   int total_to_be_sent;
   int *elements_to_send;

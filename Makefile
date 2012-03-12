@@ -115,7 +115,7 @@ charmHpccg.decl.h: hpccg.ci
 	$(CHARMC) $<
 
 charm_HPCCG: charmHpccg.o $(CHARM_OBJ)
-	$(CHARMC) -o $@ $^
+	$(CHARMC) -module completion -o $@ $^
 
 mpi_HPCCG: $(MPI_OBJ) main-mpi.o
 	$(LINKER) $(CFLAGS) $^ $(LIB_PATHS) -o $@

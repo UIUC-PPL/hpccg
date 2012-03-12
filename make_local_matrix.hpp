@@ -29,9 +29,15 @@
 
 #ifndef MAKE_LOCAL_MATRIX_H
 #define MAKE_LOCAL_MATRIX_H
+
 #ifdef USING_MPI
 #include <mpi.h>
 #endif
+
 #include "HPC_Sparse_Matrix.hpp"
+#include <map>
+
+void identify_externals(HPC_Sparse_Matrix* A, std::map< int, int > &externals);
 void make_local_matrix(HPC_Sparse_Matrix *A);
-#endif
+
+#endif /* MAKE_LOCAL_MATRIX_H */

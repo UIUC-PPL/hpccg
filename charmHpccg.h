@@ -3,6 +3,8 @@
 
 #include "HPC_Sparse_Matrix.hpp"
 #include <string>
+#include <map>
+#include <vector>
 #include <pup_stl.h>
 #include "charmHpccg.decl.h"
 
@@ -10,15 +12,17 @@
 
 class charmHpccg : public CBase_charmHpccg {
 public:
-  charmHpccg() { }
+  charmHpccg() : xMessagesExpected(0) { }
   charmHpccg(CkMigrateMessage*) { }
   void generateMatrix(int nx, int ny, int nz);
   void readMatrix(std::string fileName);
-  void findExternals() { }
-  void needElement(CkArrayIndex1D idx, int row, int col)  { }
+  void findExternals();
+  void needXElements(int idx, std::vector<int> row);
 protected:
   HPC_Sparse_Matrix* A;
   double *x, *b, *xexact;
+  int xMessagesExpected;
+  std::map<int, std::vector<int> > xToReceive, xToSend; // chare index -> rows of x
 };
 
 class charmMain : public CBase_charmMain {

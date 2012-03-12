@@ -1,6 +1,8 @@
 mainmodule charmHpccg {
+  extern module completion;
   readonly int numChares;
   readonly CProxy_charmMain mainProxy;
+  readonly CProxy_CompletionDetector detector;
 
   mainchare charmMain {
     entry charmMain(CkArgMsg*);
@@ -13,6 +15,6 @@ mainmodule charmHpccg {
     entry void generateMatrix(int nx, int ny, int nz);
     entry void readMatrix(std::string fileName);
     entry void findExternals();
-    entry void needElement(CkArrayIndex1D idx, int row, int col);
+    entry void needXElements(int idx, std::vector<int> rows);
   };
 };

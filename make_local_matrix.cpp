@@ -27,7 +27,6 @@
 // ************************************************************************
 //@HEADER
 
-#ifdef USING_MPI  // Compile this routine only if running in parallel
 #include <iostream>
 using std::cout;
 using std::cerr;
@@ -42,19 +41,78 @@ using std::endl;
 #include "make_local_matrix.hpp"
 #include "mytimer.hpp"
 //#define DEBUG
+
+#ifdef DEBUG
+  static int debug = 1;
+#else
+  static int debug = 0;
+#endif
+
+#if USING_MPI || USING_CHARM
+
+void identify_externals(HPC_Sparse_Matrix* A, std::map< int, int > &externals) {
+  ///////////////////////////////////////////
+  // Scan the indices and transform to local
+  ///////////////////////////////////////////
+  double t0;
+
+  if (debug) t0 = mytimer();
+
+  A->external_index = new int[max_external];
+  A->num_external = 0;
+
+  for (int i = 0; i < A->local_nrow; i++)
+    {
+      for (int j = 0; j < A->nnz_in_row[i]; j++)
+	{
+	  int cur_ind = A->ptr_to_inds_in_row[i][j];
+	  if (A->start_row <= cur_ind && cur_ind <= A->stop_row)
+	    {
+	      A->ptr_to_inds_in_row[i][j] -= A->start_row;
+	    }
+	  else // Must find out if we have already set up this point
+	    {
+	      if (externals.find(cur_ind) == externals.end())
+		{
+		  externals[cur_ind] = A->num_external++;
+		  if (A->num_external <= max_external)
+		    {
+		      A->external_index[A->num_external-1] = cur_ind;
+		      // Mark index as external by negating it
+		      A->ptr_to_inds_in_row[i][j] = - (A->ptr_to_inds_in_row[i][j] + 1);
+		    }
+		  else 
+		    {
+		      cerr << "Must increase max_external in HPC_Sparse_Matrix.hpp"
+			   <<endl;
+		      abort();
+		    }
+		}
+	      else
+		{
+		  // Mark index as external by adding 1 and negating it
+		  A->ptr_to_inds_in_row[i][j] = - (A->ptr_to_inds_in_row[i][j] + 1);
+		}
+	    }
+	}
+    }
+
+  if (debug) {
+    t0 = mytimer() - t0;
+    cout << "            Time in transform to local phase = " << t0 << endl;
+  }
+}
+
+#endif
+
+#if USING_MPI  // Compile this routine only if running in parallel
+
 void make_local_matrix(HPC_Sparse_Matrix * A)
 {
-  std::map< int, int > externals;
   int i, j, k;
-  int num_external = 0;
   double t0;
 
   int debug_details = 0; // Set to 1 for voluminous output
-#ifdef DEBUG
-  int debug = 1;
-#else
-  int debug = 0;
-#endif
 
   // Get MPI process info
 
@@ -87,64 +145,9 @@ void make_local_matrix(HPC_Sparse_Matrix * A)
   //     - add it to the list of external indices,  
   //     - find out which processor owns the value. 
   //     - Set up communication for sparse MV operation.
-  
-  
-  ///////////////////////////////////////////
-  // Scan the indices and transform to local
-    ///////////////////////////////////////////
 
-  if (debug) t0 = mytimer();
-
-  int *external_index = new int[max_external];
-  int *external_local_index = new int[max_external];
-  A->external_index = external_index;
-  A->external_local_index = external_local_index;
-
-  for (i=0; i< local_nrow; i++)
-    {
-      for (j=0; j<nnz_in_row[i]; j++)
-	{
-	  int cur_ind = ptr_to_inds_in_row[i][j];
-	  if (debug_details)
-	    cout << "Process "<<rank<<" of "<<size<<" getting index "
-		 <<cur_ind<<" in local row "<<i<<endl;
-	  if (start_row <= cur_ind && cur_ind <= stop_row)
-	    {
-	      ptr_to_inds_in_row[i][j] -= start_row;
-	    }
-	  else // Must find out if we have already set up this point
-	    {
-	      if (externals.find(cur_ind)==externals.end())
-		{
-		  externals[cur_ind] = num_external++;
-		  if (num_external<=max_external)
-		    {
-		      external_index[num_external-1] = cur_ind;
-		      // Mark index as external by negating it
-		      ptr_to_inds_in_row[i][j] = - (ptr_to_inds_in_row[i][j] + 1);
-		    }
-		  else 
-		    {
-		      cerr << "Must increase max_external in HPC_Sparse_Matrix.hpp"
-			   <<endl;
-		      abort();
-		    }
-		}
-	      else
-		{
-		  // Mark index as external by adding 1 and negating it
-		  ptr_to_inds_in_row[i][j] = - (ptr_to_inds_in_row[i][j] + 1);
-		}
-	    }
-	}
-    }
-
-  if (debug) {
-    t0 = mytimer() - t0;
-    cout << "            Time in transform to local phase = " << t0 << endl;
-    cout << "Processor " << rank << " of " << size <<
-	       ": Number of external equations = " << num_external << endl;
-  }
+  std::map< int, int > externals;
+  identify_externals(A, externals);
 
   ////////////////////////////////////////////////////////////////////////////
   // Go through list of externals to find out which processors must be accessed.
@@ -152,7 +155,12 @@ void make_local_matrix(HPC_Sparse_Matrix * A)
 
   if (debug) t0 = mytimer();
 
-  A->num_external = num_external;
+  int num_external = A->num_external;
+  A->external_local_index = new int[max_external];
+
+  int* external_index = A->external_index;
+  int* external_local_index = A->external_local_index;
+  
   int * tmp_buffer  = new int[size];  // Temp buffer space needed below
 
   // Build list of global index offset
@@ -173,8 +181,8 @@ void make_local_matrix(HPC_Sparse_Matrix * A)
   int * new_external_processor = new int[num_external];
   for (i=0; i< num_external; i++)
     {
-      int cur_ind = external_index[i];
-      for (int j=size-1; j>=0; j--)
+      int cur_ind = external_index[i]; 
+     for (int j=size-1; j>=0; j--)
 	if (global_index_offsets[j] <= cur_ind) 
 	  {
 	    external_processor[i] = j;
