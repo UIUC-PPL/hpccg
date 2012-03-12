@@ -46,7 +46,7 @@ mainmodule charmHpccg {
           int count = iter->second.values.size();
           double* buf = new double[count];
           for (int i = 0; i < count; ++i)
-            buf[i] = x[iter->second.values[i]];
+            buf[i] = p[iter->second.values[i]];
           thisProxy[iter->first].transferX(thisIndex, count, buf);
         }
       }
