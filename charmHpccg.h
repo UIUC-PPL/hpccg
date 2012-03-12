@@ -6,9 +6,11 @@
 #include <map>
 #include <vector>
 #include <pup_stl.h>
+#include "completion.h"
 #include "charmHpccg.decl.h"
 
 /*readonly*/ extern int numChares;
+/*readonly*/ extern CProxy_CompletionDetector detector;
 
 class charmHpccg : public CBase_charmHpccg {
 public:
@@ -28,10 +30,9 @@ protected:
 class charmMain : public CBase_charmMain {
 public:
   charmMain(CkArgMsg* msg);
-  void matrixReady();
-  void foundExternals();
 private:
   CProxy_charmHpccg array;
+  charmMain_SDAG_CODE
 };
 
 #endif /*CHARM_HPCCG*/

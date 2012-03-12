@@ -8,6 +8,21 @@ mainmodule charmHpccg {
     entry charmMain(CkArgMsg*);
     entry [reductiontarget] void matrixReady();
     entry [reductiontarget] void foundExternals();
+
+    entry void start() {
+      when matrixReady() atomic {
+        detector.ckLocalBranch()
+          ->start_detection(numChares,
+                            CkCallback(CkIndex_charmHpccg::findExternals(), array),
+                            CkCallback(CkReductionTarget(charmMain, foundExternals), thisProxy),
+                            0);
+      }
+
+      when foundExternals() atomic {
+        CkPrintf("start findExternals()\n");
+        CkExit();
+      }
+    };
   };
   
   array [1D] charmHpccg {

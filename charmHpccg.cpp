@@ -2,7 +2,6 @@
 #include "generate_matrix.hpp"
 #include "read_HPC_row.hpp"
 #include "make_local_matrix.hpp"
-#include "completion.h"
 
 #include <string>
 #include <iostream>
@@ -14,6 +13,7 @@ using namespace std;
 /*readonly*/ CProxy_CompletionDetector detector;
 
 charmMain::charmMain(CkArgMsg* msg) {
+  __sdag_init();
   CkPrintf("charm HPCCG startup\n");
   fflush(stdout);
   
@@ -46,19 +46,8 @@ charmMain::charmMain(CkArgMsg* msg) {
   }
   
   delete msg;
-}
 
-void charmMain::foundExternals() {
-  CkPrintf("start findExternals()\n");
-  CkExit();
-}
-
-void charmMain::matrixReady() {
-  detector.ckLocalBranch()
-    ->start_detection(numChares,
-                      CkCallback(CkIndex_charmHpccg::findExternals(), array),
-                      CkCallback(CkReductionTarget(charmMain, foundExternals), mainProxy),
-                      0);
+  thisProxy.start();
 }
 
 void charmHpccg::generateMatrix(int nx, int ny, int nz) {
