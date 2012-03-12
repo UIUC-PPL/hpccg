@@ -101,6 +101,8 @@ void identify_externals(HPC_Sparse_Matrix* A, std::map< int, int > &externals) {
     t0 = mytimer() - t0;
     cout << "            Time in transform to local phase = " << t0 << endl;
   }
+
+  A->local_ncol = A->local_nrow + A->num_external;
 }
 
 #endif
@@ -581,7 +583,6 @@ void make_local_matrix(HPC_Sparse_Matrix * A)
   ////////////////
 
   A->num_send_neighbors = num_send_neighbors;
-  A->local_ncol = A->local_nrow + num_external;
 
   //Used in exchange_externals
   double *send_buffer = new double[total_to_be_sent];
