@@ -8,6 +8,7 @@ mainmodule charmHpccg {
     entry charmMain(CkArgMsg*);
     entry [reductiontarget] void matrixReady();
     entry [reductiontarget] void foundExternals();
+    entry [reductiontarget] void done();
 
     entry void start() {
       when matrixReady() atomic {
@@ -19,7 +20,10 @@ mainmodule charmHpccg {
       }
 
       when foundExternals() atomic {
-        CkPrintf("start findExternals()\n");
+        array.beginComputation(10, 1e-30);
+      }
+
+      when done() atomic {
         CkExit();
       }
     };
@@ -31,5 +35,105 @@ mainmodule charmHpccg {
     entry void readMatrix(std::string fileName);
     entry void findExternals();
     entry void needXElements(int idx, std::vector<int> rows);
+    entry void transferX(int src, int size, double elms[size]);
+    entry void exchangeDone();
+    entry [reductiontarget] void reduceResidual(double res);
+
+    entry void exchangeExternals() {
+      atomic {
+        for(std::map<int, RemoteX>::iterator iter = xToSend.begin();
+            iter != xToSend.end(); ++iter) {
+          int count = iter->second.values.size();
+          double* buf = new double[count];
+          for (int i = 0; i < count; ++i)
+            buf[i] = x[iter->second.values[i]];
+          thisProxy[iter->first].transferX(thisIndex, count, buf);
+        }
+      }
+      for (xMessagesReceived = 0; xMessagesReceived < xToReceive.size(); xMessagesReceived++) {
+        when transferX(int src, int size, double elms[size]) atomic {
+          CkAssert(xToReceive.find(src) != xToReceive.end());
+          CkAssert(size == xToReceive[src].values.size());
+          double *x_external = p + A->local_nrow;
+          memcpy(x_external + xToReceive[src].offset, elms, size * sizeof(double));
+        }
+      }
+      atomic {
+        exchangeDone();
+      }
+    };
+
+    entry void beginComputation(const int max_iter, const double tolerance) {
+      atomic "initialize" {
+        r = new double[A->local_nrow];
+        p = new double[A->local_ncol];
+        Ap = new double[A->local_nrow];
+
+        normr = 0.0;
+        rtrans = 0.0;
+        oldrtrans = 0.0;
+      }
+      atomic {
+        waxpby(A->local_nrow, 1.0, x, 0.0, x, p);
+        exchangeExternals();
+      }
+      when exchangeDone() atomic {
+        double t4;
+        HPC_sparsemv(A, p, Ap);
+        waxpby(A->local_nrow, 1.0, b, -1.0, Ap, r);
+        ddot(A->local_nrow, r, r, &rtrans, t4);
+        contribute(sizeof(double), &rtrans, CkReduction::sum_double,
+                   CkCallback(CkReductionTarget(charmHpccg, reduceResidual), thisProxy));
+      }
+      when reduceResidual(double res) atomic {
+        rtrans = res;
+        normr = sqrt(rtrans);
+        if (thisIndex == 0) ckout << "Initial Residual = "<< normr << endl;
+      }
+      for (iteration = 1; iteration < max_iter && normr > tolerance; iteration++) {
+        if (iteration == 1) atomic {
+          waxpby(A->local_nrow, 1.0, r, 0.0, r, p);
+        } else {
+          atomic {
+            double t4;
+            oldrtrans = rtrans;
+            ddot(A->local_nrow, r, r, &rtrans, t4); // 2*nrow ops
+            contribute(sizeof(double), &rtrans, CkReduction::sum_double,
+                       CkCallback(CkReductionTarget(charmHpccg, reduceResidual), thisProxy));
+          }
+          when reduceResidual(double res) atomic {
+            rtrans = res;
+            double beta = rtrans/oldrtrans;
+            waxpby(A->local_nrow, 1.0, r, beta, p, p); // 2*nrow ops
+          }
+        }
+        atomic {
+          normr = sqrt(rtrans);
+          if (thisIndex == 0)
+            ckout << "Iteration = "<< iteration << "   Residual = "<< normr << endl;
+          exchangeExternals();
+        }
+        when exchangeDone() atomic {
+          HPC_sparsemv(A, p, Ap); // 2*nnz ops
+          double alpha = 0.0;
+          double t4;
+          ddot(A->local_nrow, p, Ap, &alpha, t4); // 2*nrow ops
+          contribute(sizeof(double), &alpha, CkReduction::sum_double,
+                     CkCallback(CkReductionTarget(charmHpccg, reduceResidual), thisProxy));
+        }
+        when reduceResidual(double res) atomic {
+          alpha = res;
+          alpha = rtrans/alpha;
+          waxpby(A->local_nrow, 1.0, x, alpha, p, x);// 2*nrow ops
+          waxpby(A->local_nrow, 1.0, r, -alpha, Ap, r);// 2*nrow ops
+          //niters = k;
+        }
+      }
+
+      atomic {
+        contribute(CkCallback(CkReductionTarget(charmMain, done), mainProxy));
+      }
+    };
+
   };
 };

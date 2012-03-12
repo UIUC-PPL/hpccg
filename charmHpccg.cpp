@@ -81,21 +81,23 @@ void charmHpccg::findExternals() {
       remoteRow = rowsPastCutoff % chunksize;
     }
 
-    xToReceive[chare].push_back(remoteRow);
+    xToReceive[chare].values.push_back(remoteRow);
   }
 
-  for(map<int, vector<int> >::iterator iter = xToReceive.begin();
+  int offset = 0;
+  for(map<int, RemoteX>::iterator iter = xToReceive.begin();
       iter != xToReceive.end(); ++iter) {
-    thisProxy[iter->first].needXElements(thisIndex, iter->second);
+    iter->second.offset = offset;
+    offset += iter->second.values.size();
+    thisProxy[iter->first].needXElements(thisIndex, iter->second.values);
   }
 
-  xMessagesExpected = xToReceive.size();
   detector.ckLocalBranch()->produce(xToReceive.size());
   detector.ckLocalBranch()->done();
 }
 
 void charmHpccg::needXElements(int requester, vector<int> rows) {
-  xToSend[requester] = rows;
+  xToSend[requester].values = rows;
   detector.ckLocalBranch()->consume();
 }
 
