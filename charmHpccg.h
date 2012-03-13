@@ -29,10 +29,8 @@ class charmHpccg : public CBase_charmHpccg {
 public:
   charmHpccg() { __sdag_init(); }
   charmHpccg(CkMigrateMessage*) { }
-  void generateMatrix(int nx, int ny, int nz);
-  void readMatrix(std::string fileName);
   void findExternals();
-  void needXElements(int idx, std::vector<int> row);
+  void needXElements(int requester, std::vector<int> rows);
 protected:
   HPC_Sparse_Matrix* A;
   double *x, *b, *xexact;

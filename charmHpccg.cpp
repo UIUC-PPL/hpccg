@@ -1,6 +1,4 @@
 #include "charmHpccg.h"
-#include "generate_matrix.hpp"
-#include "read_HPC_row.hpp"
 #include "make_local_matrix.hpp"
 
 #include <string>
@@ -48,16 +46,6 @@ charmMain::charmMain(CkArgMsg* msg) {
   delete msg;
 
   thisProxy.start();
-}
-
-void charmHpccg::generateMatrix(int nx, int ny, int nz) {
-  generate_matrix(nx, ny, nz, &A, &x, &b, &xexact, numChares, thisIndex);
-  contribute(CkCallback(CkReductionTarget(charmMain, matrixReady), mainProxy));
-}
-
-void charmHpccg::readMatrix(std::string fileName) {
-  read_HPC_row(fileName.c_str(), &A, &x, &b, &xexact, numChares, thisIndex);
-  contribute(CkCallback(CkReductionTarget(charmMain, matrixReady), mainProxy));
 }
 
 void charmHpccg::findExternals() {
