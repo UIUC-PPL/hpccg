@@ -123,7 +123,7 @@ mainmodule charmHpccg {
           }
           when reduceResidual(double res) atomic {
             rtrans = res;
-            double beta = rtrans/oldrtrans;
+            double beta = rtrans / oldrtrans;
             waxpby(A->local_nrow, 1.0, r, beta, p, p); // 2*nrow ops
           }
         }
