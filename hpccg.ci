@@ -49,8 +49,8 @@ mainmodule charmHpccg {
     entry void findExternals();
     entry void needXElements(int requester, std::vector<int> rows);
 
-    /// Data exchange routines
-    entry void exchangeExternals() {
+    /// Parallel sparse matrix-vector multiplication
+    entry void charmSpMV() {
       atomic {
         for(std::map<int, RemoteX>::iterator iter = xToSend.begin();
             iter != xToSend.end(); ++iter) {
@@ -71,11 +71,12 @@ mainmodule charmHpccg {
         }
       }
       atomic {
-        exchangeDone();
+        HPC_sparsemv(A, p, Ap); // 2*nnz ops
+        spmvDone();
       }
     };
     entry void transferX(int src, int size, double elms[size]);
-    entry void exchangeDone();
+    entry void spmvDone();
 
     /// Main CG computation routine
     entry void beginComputation(const int max_iter, const double tolerance) {
@@ -90,11 +91,10 @@ mainmodule charmHpccg {
       }
       atomic {
         waxpby(A->local_nrow, 1.0, x, 0.0, x, p);
-        exchangeExternals();
+        charmSpMV();
       }
-      when exchangeDone() atomic {
+      when spmvDone() atomic {
         double t4;
-        HPC_sparsemv(A, p, Ap);
         waxpby(A->local_nrow, 1.0, b, -1.0, Ap, r);
         ddot(A->local_nrow, r, r, &rtrans, t4);
         contribute(sizeof(double), &rtrans, CkReduction::sum_double,
@@ -126,10 +126,9 @@ mainmodule charmHpccg {
           normr = sqrt(rtrans);
           if (thisIndex == 0 && iteration % 15 == 0)
             CkPrintf("Iteration = %d,\tResidual = %g\n", iteration, normr);
-          exchangeExternals();
+          charmSpMV();
         }
-        when exchangeDone() atomic {
-          HPC_sparsemv(A, p, Ap); // 2*nnz ops
+        when spmvDone() atomic {
           double alpha = 0.0;
           double t4;
           ddot(A->local_nrow, p, Ap, &alpha, t4); // 2*nrow ops
