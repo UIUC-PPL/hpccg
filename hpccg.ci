@@ -138,7 +138,7 @@ mainmodule charmHpccg {
           charmDDot(p, Ap);
         }
         when reduceResidual(double res) atomic {
-          alpha = rtrans / res;
+          double alpha = rtrans / res;
           waxpby(A->local_nrow, 1.0, x, alpha, p, x);// 2*nrow ops
           waxpby(A->local_nrow, 1.0, r, -alpha, Ap, r);// 2*nrow ops
           //niters = k;
