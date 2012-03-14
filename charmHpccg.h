@@ -37,7 +37,7 @@ protected:
   std::map<int, RemoteX> xToReceive, xToSend; // chare index -> rows of x
 
   double *r, *p, *Ap;
-  double normr, rtrans, oldrtrans;
+  double normr, rtrans;
   int xMessagesReceived;
   int iteration;
   charmHpccg_SDAG_CODE

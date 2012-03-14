@@ -99,7 +99,6 @@ mainmodule charmHpccg {
 
         normr = 0.0;
         rtrans = 0.0;
-        oldrtrans = 0.0;
       }
       atomic {
         waxpby(A->local_nrow, 1.0, x, 0.0, x, p);
@@ -119,12 +118,11 @@ mainmodule charmHpccg {
           waxpby(A->local_nrow, 1.0, r, 0.0, r, p);
         } else {
           atomic {
-            oldrtrans = rtrans;
             charmDDot(r, r);
           }
-          when reduceResidual(double res) atomic {
-            rtrans = res;
-            double beta = rtrans / oldrtrans;
+          when reduceResidual(double newrtrans) atomic {
+            double beta = newrtrans / rtrans;
+            rtrans = newrtrans;
             waxpby(A->local_nrow, 1.0, r, beta, p, p); // 2*nrow ops
           }
         }
