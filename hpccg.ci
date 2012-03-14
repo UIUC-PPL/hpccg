@@ -78,6 +78,17 @@ mainmodule charmHpccg {
     entry void transferX(int src, int size, double elms[size]);
     entry void spmvDone();
 
+    /// Parallel dot-product
+    entry [local] void charmDDot(const double* a, const double* b, double* result) {
+      atomic {
+        double t4;
+        ddot(A->local_nrow, a, b, result, t4); // 2*nrow ops
+        contribute(sizeof(double), result, CkReduction::sum_double,
+                   CkCallback(CkReductionTarget(charmHpccg, reduceResidual), thisProxy));
+      }
+    };
+    entry [reductiontarget] void reduceResidual(double res);
+
     /// Main CG computation routine
     entry void beginComputation(const int max_iter, const double tolerance) {
       atomic "initialize" {
@@ -94,11 +105,8 @@ mainmodule charmHpccg {
         charmSpMV();
       }
       when spmvDone() atomic {
-        double t4;
         waxpby(A->local_nrow, 1.0, b, -1.0, Ap, r);
-        ddot(A->local_nrow, r, r, &rtrans, t4);
-        contribute(sizeof(double), &rtrans, CkReduction::sum_double,
-                   CkCallback(CkReductionTarget(charmHpccg, reduceResidual), thisProxy));
+        charmDDot(r, r, &rtrans);
       }
       when reduceResidual(double res) atomic {
         rtrans = res;
@@ -110,11 +118,8 @@ mainmodule charmHpccg {
           waxpby(A->local_nrow, 1.0, r, 0.0, r, p);
         } else {
           atomic {
-            double t4;
             oldrtrans = rtrans;
-            ddot(A->local_nrow, r, r, &rtrans, t4); // 2*nrow ops
-            contribute(sizeof(double), &rtrans, CkReduction::sum_double,
-                       CkCallback(CkReductionTarget(charmHpccg, reduceResidual), thisProxy));
+            charmDDot(r, r, &rtrans);
           }
           when reduceResidual(double res) atomic {
             rtrans = res;
@@ -130,10 +135,7 @@ mainmodule charmHpccg {
         }
         when spmvDone() atomic {
           double alpha = 0.0;
-          double t4;
-          ddot(A->local_nrow, p, Ap, &alpha, t4); // 2*nrow ops
-          contribute(sizeof(double), &alpha, CkReduction::sum_double,
-                     CkCallback(CkReductionTarget(charmHpccg, reduceResidual), thisProxy));
+          charmDDot(p, Ap, &alpha);
         }
         when reduceResidual(double res) atomic {
           alpha = rtrans / res;
@@ -147,6 +149,5 @@ mainmodule charmHpccg {
         contribute(CkCallback(CkReductionTarget(charmMain, done), mainProxy));
       }
     };
-    entry [reductiontarget] void reduceResidual(double res);
   };
 };
