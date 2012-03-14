@@ -79,11 +79,12 @@ mainmodule charmHpccg {
     entry void spmvDone();
 
     /// Parallel dot-product
-    entry [local] void charmDDot(const double* a, const double* b, double* result) {
+    entry [local] void charmDDot(const double* a, const double* b) {
       atomic {
         double t4;
-        ddot(A->local_nrow, a, b, result, t4); // 2*nrow ops
-        contribute(sizeof(double), result, CkReduction::sum_double,
+        double result;
+        ddot(A->local_nrow, a, b, &result, t4); // 2*nrow ops
+        contribute(sizeof(double), &result, CkReduction::sum_double,
                    CkCallback(CkReductionTarget(charmHpccg, reduceResidual), thisProxy));
       }
     };
@@ -106,7 +107,7 @@ mainmodule charmHpccg {
       }
       when spmvDone() atomic {
         waxpby(A->local_nrow, 1.0, b, -1.0, Ap, r);
-        charmDDot(r, r, &rtrans);
+        charmDDot(r, r);
       }
       when reduceResidual(double res) atomic {
         rtrans = res;
@@ -119,7 +120,7 @@ mainmodule charmHpccg {
         } else {
           atomic {
             oldrtrans = rtrans;
-            charmDDot(r, r, &rtrans);
+            charmDDot(r, r);
           }
           when reduceResidual(double res) atomic {
             rtrans = res;
@@ -134,8 +135,7 @@ mainmodule charmHpccg {
           charmSpMV();
         }
         when spmvDone() atomic {
-          double alpha = 0.0;
-          charmDDot(p, Ap, &alpha);
+          charmDDot(p, Ap);
         }
         when reduceResidual(double res) atomic {
           alpha = rtrans / res;
