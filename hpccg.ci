@@ -52,6 +52,7 @@ mainmodule charmHpccg {
     /// Parallel sparse matrix-vector multiplication
     entry void charmSpMV() {
       atomic {
+        // Send the elements of the x vector to the other chares that need it
         for(std::map<int, RemoteX>::iterator iter = xToSend.begin();
             iter != xToSend.end(); ++iter) {
           int count = iter->second.values.size();
@@ -61,6 +62,7 @@ mainmodule charmHpccg {
           thisProxy[iter->first].transferX(thisIndex, count, buf);
         }
       }
+      // Gather up elements of the x vector that this chare needs from others
       for (xMessagesReceived = 0; xMessagesReceived < xToReceive.size(); xMessagesReceived++) {
         when transferX(int src, int size, double elms[size]) atomic {
           CkAssert(xToReceive.find(src) != xToReceive.end());
@@ -71,7 +73,10 @@ mainmodule charmHpccg {
         }
       }
       atomic {
+        // Run the local sparse matrix-vector computation
         HPC_sparsemv(A, p, Ap); // 2*nnz ops
+        // Signal that the local chunk of the multiplication is done
+        // and the CG iteration can continue
         spmvDone();
       }
     };
