@@ -12,13 +12,8 @@ mainmodule charmHpccg {
 
     entry void start() {
       when matrixReady() atomic {
-        detector
-          .start_detection(numChares,
-                           CkCallback(CkIndex_charmHpccg::findExternals(), array),
-                           CkCallback(CkReductionTarget(charmMain, foundExternals), thisProxy),
-                           0);
+        array.findExternals();
       }
-
       when foundExternals() atomic {
         array.beginComputation(150, 0);
       }
@@ -48,6 +43,7 @@ mainmodule charmHpccg {
     /// Communication setup routines
     entry void findExternals();
     entry void needXElements(int requester, std::vector<int> rows);
+    entry void ackXRequest();
 
     /// Parallel sparse matrix-vector multiplication
     entry void charmSpMV() {

@@ -11,7 +11,6 @@
 #include "charmHpccg.decl.h"
 
 /*readonly*/ extern int numChares;
-/*readonly*/ extern CProxy_CompletionDetector detector;
 /*readonly*/ extern CProxy_charmMain mainProxy;
 
 struct RemoteX {
@@ -27,10 +26,11 @@ struct RemoteX {
 
 class charmHpccg : public CBase_charmHpccg {
 public:
-  charmHpccg() { __sdag_init(); }
+  charmHpccg() : xRequestsAcked(0) { __sdag_init(); }
   charmHpccg(CkMigrateMessage*) { }
   void findExternals();
   void needXElements(int requester, std::vector<int> rows);
+  void ackXRequest();
 protected:
   HPC_Sparse_Matrix* A;
   double *x, *b, *xexact;
@@ -38,7 +38,7 @@ protected:
 
   double *r, *p, *Ap;
   double normr, rtrans;
-  int xMessagesReceived;
+  int xMessagesReceived, xRequestsAcked;
   int iteration;
   charmHpccg_SDAG_CODE
 };
