@@ -42,8 +42,7 @@ mainmodule charmHpccg {
 
     /// Communication setup routines
     entry void findExternals();
-    entry void needXElements(int requester, std::vector<int> rows);
-    entry void ackXRequest();
+    entry [sync] void needXElements(int requester, std::vector<int> rows);
 
     /// Parallel sparse matrix-vector multiplication
     entry void charmSpMV() {

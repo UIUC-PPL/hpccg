@@ -30,7 +30,6 @@ public:
   charmHpccg(CkMigrateMessage*) { }
   void findExternals();
   void needXElements(int requester, std::vector<int> rows);
-  void ackXRequest();
 protected:
   HPC_Sparse_Matrix* A;
   double *x, *b, *xexact;

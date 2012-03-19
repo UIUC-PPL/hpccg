@@ -98,15 +98,12 @@ void charmHpccg::findExternals() {
       }
     }
   }
+
+  contribute(CkCallback(CkReductionTarget(charmMain, foundExternals), mainProxy));
 }
 
 void charmHpccg::needXElements(int requester, vector<int> rows) {
   xToSend[requester].values = rows;
-  thisProxy[requester].ackXRequest();
-}
-void charmHpccg::ackXRequest() {
-  if (++xRequestsAcked == xToReceive.size())
-    contribute(CkCallback(CkReductionTarget(charmMain, foundExternals), mainProxy));
 }
 
 #include "charmHpccg.def.h"
