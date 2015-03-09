@@ -15,6 +15,7 @@ mainmodule charmHpccg {
         detector
           .start_detection(numChares,
                            CkCallback(CkIndex_charmHpccg::findExternals(), array),
+                           CkCallback(CkCallback::ignore), 
                            CkCallback(CkReductionTarget(charmMain, foundExternals), thisProxy),
                            0);
       }
