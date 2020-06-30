@@ -89,7 +89,7 @@ mainmodule charmHpccg {
       atomic {
         double t4;
         double result;
-        dot(A->local_nrow, a, b, &result, t4); // 2*nrow ops
+        ddot(A->local_nrow, a, b, &result, t4); // 2*nrow ops
         contribute(sizeof(double), &result, CkReduction::sum_double,
                    CkCallback(CkReductionTarget(charmHpccg, reduceResidual), thisProxy));
       }

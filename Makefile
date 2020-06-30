@@ -124,4 +124,4 @@ seq_HPCCG: $(SEQ_OBJ) main-seq.o
 	$(LINKER) $(CFLAGS) $^ $(LIB_PATHS) -o $@
 
 clean:
-	@rm -f *.o  *~ *-seq.cpp *-mpi.cpp *-charm.cpp $(TARGETS) $(TARGET:=.exe) *.decl.h *.def.h
+	@rm -f *.o  *~ *-seq.cpp *-mpi.cpp *-charm.cpp $(TARGETS) $(TARGET:=.exe) *.decl.h *.def.h charmrun
