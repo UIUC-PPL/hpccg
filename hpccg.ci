@@ -85,11 +85,11 @@ mainmodule charmHpccg {
     entry void spmvDone();
 
     /// Parallel dot-product
-    entry [local] void charmDDot(const double* a, const double* b) {
+    entry [local] void charmDDot(double* a, double* b) {
       atomic {
         double t4;
         double result;
-        ddot(A->local_nrow, a, b, &result, t4); // 2*nrow ops
+        dot(A->local_nrow, a, b, &result, t4); // 2*nrow ops
         contribute(sizeof(double), &result, CkReduction::sum_double,
                    CkCallback(CkReductionTarget(charmHpccg, reduceResidual), thisProxy));
       }
