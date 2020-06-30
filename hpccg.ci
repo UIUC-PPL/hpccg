@@ -108,7 +108,7 @@ mainmodule charmHpccg {
       }
       atomic {
         waxpby(A->local_nrow, 1.0, x, 0.0, x, p);
-        charmSpMV();
+        thisProxy[thisIndex].charmSpMV();
       }
       when spmvDone() atomic {
         waxpby(A->local_nrow, 1.0, b, -1.0, Ap, r);
@@ -136,7 +136,7 @@ mainmodule charmHpccg {
           normr = sqrt(rtrans);
           if (thisIndex == 0 && iteration % 15 == 0)
             CkPrintf("Iteration = %d,\tResidual = %g\n", iteration, normr);
-          charmSpMV();
+          thisProxy[thisIndex].charmSpMV();
         }
         when spmvDone() atomic {
           charmDDot(p, Ap);
